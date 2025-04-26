@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Diabetes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Check for diabetes</h1>
+            <h1 id="currentTime" class="text-end"></h1>
+            <script>
+                function updateTime() {
+                    const now = new Date();
+                    const formattedTime = now.toLocaleTimeString();
+                    document.getElementById("currentTime").textContent = `${formattedTime}`;
+                }
+                setInterval(updateTime, 1000);
+                updateTime();
+            </script>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header">Add new informations</div>
+            <div class="card-body">
+                <form id="diabetesForm" class="row g-3">
+                    <div class="col-md-4">
+                        <input type="number" step="any" class="form-control" id="pregnancies" placeholder="Pregnancies"
+                            required>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" step="any" class="form-control" id="glucose" placeholder="Glucose"
+                            required>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" step="any" class="form-control" id="bloodPressure"
+                            placeholder="Blood pressure" required>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" step="any" class="form-control" id="skinThickness"
+                            placeholder="Skin thickness" required>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" step="any" class="form-control" id="insulin" placeholder="Insulin"
+                            required>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" step="any" class="form-control" id="bmi" placeholder="BMI" required>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" step="any" class="form-control" id="dpf"
+                            placeholder="Diabetes pedigree function" required>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="number" step="any" class="form-control" id="age" placeholder="Age" required>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="outcome" class="form-select" required>
+                            <option value="0">No diabetes</option>
+                            <option value="1">Diabetes</option>
+                        </select>
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-database-fill-add"></i> Add new information
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="predictDiabetes()">
+                            <i class="bi bi-search"></i> Predict
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <form id="editForm">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editModalLabel">Update information</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body row g-3">
+                            <div class="col-md-4">
+                                <input type="number" step="any" class="form-control" id="edit-pregnancies"
+                                    placeholder="Pregnancies" required>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" step="any" class="form-control" id="edit-glucose"
+                                    placeholder="Glucose" required>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" step="any" class="form-control" id="edit-bloodPressure"
+                                    placeholder="Blood pressure" required>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" step="any" class="form-control" id="edit-skinThickness"
+                                    placeholder="Skin thickness" required>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" step="any" class="form-control" id="edit-insulin"
+                                    placeholder="Insulin" required>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" step="any" class="form-control" id="edit-bmi" placeholder="BMI"
+                                    required>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" step="any" class="form-control" id="edit-dpf"
+                                    placeholder="Diabetes pedigree function" required>
+                            </div>
+                            <div class="col-md-4">
+                                <input type="number" step="any" class="form-control" id="edit-age" placeholder="Age"
+                                    required>
+                            </div>
+                            <div class="col-md-4">
+                                <select id="edit-outcome" class="form-select" required>
+                                    <option value="0">No diabetes</option>
+                                    <option value="1">Diabetes</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">Save</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+                <h5 class="mb-0">Exploratory informations analysis</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="xScale" class="form-label">Choose X Scale:</label>
+                        <select id="xScale" class="form-select" onchange="renderEDACharts()">
+                            <option value="Glucose">Glucose</option>
+                            <option value="BMI">BMI</option>
+                            <option value="Age">Age</option>
+                            <option value="Pregnancies">Pregnancies</option>
+                            <option value="BloodPressure">Blood pressure</option>
+                            <option value="SkinThickness">Skin thickness</option>
+                            <option value="Insulin">Insulin</option>
+                            <option value="DiabetesPedigreeFunction">Diabetes pedigree function</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="yScale" class="form-label">Choose Y Scale:</label>
+                        <select id="yScale" class="form-select" onchange="renderEDACharts()">
+                            <option value="Glucose">Glucose</option>
+                            <option value="BMI">BMI</option>
+                            <option value="Age">Age</option>
+                            <option value="Pregnancies">Pregnancies</option>
+                            <option value="BloodPressure">Blood pressure</option>
+                            <option value="SkinThickness">Skin thickness</option>
+                            <option value="Insulin">Insulin</option>
+                            <option value="DiabetesPedigreeFunction">Diabetes pedigree function</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <h6 class="text-center">X vs Y Analysis</h6>
+                        <canvas id="glucoseBmiChart" class="shadow-lg"></canvas>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <h6 class="text-center">Age group vs Outcome</h6>
+                        <canvas id="ageOutcomeChart" class="shadow-lg"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">Complete patient information</div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Pregnancies</th>
+                            <th>Glucose</th>
+                            <th>Blood pressure</th>
+                            <th>Skin thickness</th>
+                            <th>Insulin</th>
+                            <th>BMI</th>
+                            <th>Diabetes pedigree function</th>
+                            <th>Age</th>
+                            <th>Outcome</th>
+                            <th>Created at</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataBody"></tbody>
+                </table>
+                <nav>
+                    <ul class="pagination justify-content-center" id="pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const form = document.getElementById("diabetesForm");
+        const dataBody = document.getElementById("dataBody");
+        const pagination = document.getElementById("pagination");
+
+        let glucoseBmiChart;
+        let ageOutcomeChart;
+        let currentEditId = null;
+        let currentPage = 1;
+        const itemsPerPage = 35;
+
+        async function loadData(page = 1) {
+            try {
+                const { data } = await axios.get("http://localhost:4000/api/diabetes");
+                const start = (page - 1) * itemsPerPage;
+                const paginatedData = data.slice(start, start + itemsPerPage);
+
+                dataBody.innerHTML = "";
+                paginatedData.forEach((item, index) => {
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                <td class="text-center">${start + index + 1}</td>
+                <td class="text-center">${item.Pregnancies}</td>
+                <td class="text-center">${item.Glucose}</td>
+                <td class="text-center">${item.BloodPressure}</td>
+                <td class="text-center">${item.SkinThickness}</td>
+                <td class="text-center">${item.Insulin}</td>
+                <td class="text-center">${item.BMI}</td>
+                <td class="text-center">${item.DiabetesPedigreeFunction}</td>
+                <td class="text-center">${item.Age}</td>
+                <td class="text-center">${item.Outcome}</td>
+                <td class="text-center">${new Date(item.createdAt).toLocaleTimeString()}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="editData('${item._id}')">
+                        <i class="bi bi-pencil-square"></i> Update
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteData('${item._id}')">
+                        <i class="bi bi-trash3-fill"></i> Delete
+                    </button>
+                </td>
+            `;
+                    dataBody.appendChild(row);
+                });
+
+                renderPagination(data.length, page);
+            } catch (error) {
+                console.error("Error loading data:", error);
+            }
+        }
+
+        function renderPagination(totalItems, currentPage) {
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            pagination.innerHTML = "";
+            for (let i = 1; i <= totalPages; i++) {
+                const li = document.createElement("li");
+                li.className = `page-item ${i === currentPage ? "active" : ""}`;
+                li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+                li.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    loadData(i);
+                });
+                pagination.appendChild(li);
+            }
+        }
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const newData = {
+                Pregnancies: parseFloat(document.getElementById("pregnancies").value),
+                Glucose: parseFloat(document.getElementById("glucose").value),
+                BloodPressure: parseFloat(document.getElementById("bloodPressure").value),
+                SkinThickness: parseFloat(document.getElementById("skinThickness").value),
+                Insulin: parseFloat(document.getElementById("insulin").value),
+                BMI: parseFloat(document.getElementById("bmi").value),
+                DiabetesPedigreeFunction: parseFloat(document.getElementById("dpf").value),
+                Age: parseFloat(document.getElementById("age").value),
+                Outcome: parseFloat(document.getElementById("outcome").value),
+            };
+            try {
+                await axios.post("http://localhost:4000/api/diabetes", newData);
+                form.reset();
+                await Promise.all([loadData(), renderEDACharts()]);
+                Swal.fire({
+                    title: "Success!",
+                    text: "Data added successfully.",
+                    icon: "success",
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+            } catch (error) {
+                Swal.fire({
+                    title: "Error!",
+                    text: "Failed to add data.",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                });
+                console.error("Error adding data:", error);
+            }
+        });
+
+        async function deleteData(id) {
+            const result = await Swal.fire({
+                title: "Confirm deletion",
+                text: "Are you sure you want to delete this record?",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Delete",
+                cancelButtonText: "Cancel",
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    await axios.delete(`http://localhost:4000/api/diabetes/${id}`);
+                    await Promise.all([loadData(), renderEDACharts()]);
+                    Swal.fire({
+                        title: "Deleted!",
+                        text: "Record has been deleted.",
+                        icon: "success",
+                        timer: 2000,
+                        showConfirmButton: false,
+                    });
+                } catch (error) {
+                    Swal.fire({
+                        title: "Error!",
+                        text: "Failed to delete record.",
+                        icon: "error",
+                        confirmButtonText: "OK",
+                    });
+                    console.error("Error deleting data:", error);
+                }
+            }
+        }
+
+        async function editData(id) {
+            try {
+                const { data } = await axios.get(`http://localhost:4000/api/diabetes/${id}`);
+                currentEditId = id;
+                document.getElementById("edit-pregnancies").value = data.Pregnancies;
+                document.getElementById("edit-glucose").value = data.Glucose;
+                document.getElementById("edit-bloodPressure").value = data.BloodPressure;
+                document.getElementById("edit-skinThickness").value = data.SkinThickness;
+                document.getElementById("edit-insulin").value = data.Insulin;
+                document.getElementById("edit-bmi").value = data.BMI;
+                document.getElementById("edit-dpf").value = data.DiabetesPedigreeFunction;
+                document.getElementById("edit-age").value = data.Age;
+                document.getElementById("edit-outcome").value = data.Outcome;
+                const editModal = new bootstrap.Modal(document.getElementById("editModal"));
+                editModal.show();
+            } catch (error) {
+                console.error("Error fetching data for edit:", error);
+            }
+        }
+
+        const editForm = document.getElementById("editForm");
+        editForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!currentEditId) return;
+            try {
+                await axios.put(`http://localhost:4000/api/diabetes/${currentEditId}`, {
+                    Pregnancies: parseFloat(document.getElementById("edit-pregnancies").value),
+                    Glucose: parseFloat(document.getElementById("edit-glucose").value),
+                    BloodPressure: parseFloat(document.getElementById("edit-bloodPressure").value),
+                    SkinThickness: parseFloat(document.getElementById("edit-skinThickness").value),
+                    Insulin: parseFloat(document.getElementById("edit-insulin").value),
+                    BMI: parseFloat(document.getElementById("edit-bmi").value),
+                    DiabetesPedigreeFunction: parseFloat(document.getElementById("edit-dpf").value),
+                    Age: parseFloat(document.getElementById("edit-age").value),
+                    Outcome: parseFloat(document.getElementById("edit-outcome").value),
+                });
+                currentEditId = null;
+                await Promise.all([loadData(), renderEDACharts()]);
+                const modalEl = document.getElementById("editModal");
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                modalInstance.hide();
+                Swal.fire({
+                    title: "Success!",
+                    text: "Data updated successfully.",
+                    icon: "success",
+                    timer: 2000,
+                    showConfirmButton: false,
+                });
+            } catch (error) {
+                Swal.fire({
+                    title: "Error!",
+                    text: "Failed to update data.",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                });
+                console.error("Error updating data:", error);
+            }
+        });
+
+        async function predictDiabetes() {
+            const input = {
+                Pregnancies: parseFloat(document.getElementById("pregnancies").value),
+                Glucose: parseFloat(document.getElementById("glucose").value),
+                BloodPressure: parseFloat(document.getElementById("bloodPressure").value),
+                SkinThickness: parseFloat(document.getElementById("skinThickness").value),
+                Insulin: parseFloat(document.getElementById("insulin").value),
+                BMI: parseFloat(document.getElementById("bmi").value),
+                DiabetesPedigreeFunction: parseFloat(document.getElementById("dpf").value),
+                Age: parseFloat(document.getElementById("age").value),
+            };
+
+            try {
+                const { data } = await axios.post("http://localhost:4000/api/diabetes/predict", input);
+                if (data.prediction === undefined) {
+                    throw new Error("Prediction data is missing");
+                }
+
+                Swal.fire({
+                    title: "Prediction Result",
+                    text: `Prediction: ${data.prediction === 1 ? "Diabetic" : "Not Diabetic"}`,
+                    icon: "info",
+                    confirmButtonText: "OK",
+                });
+            } catch (error) {
+                Swal.fire({
+                    title: "Error",
+                    text: "Failed to predict diabetes. Please try again.",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                });
+                console.error("Error predicting diabetes:", error);
+            }
+        }
+
+        async function renderEDACharts() {
+            try {
+                const xScale = document.getElementById("xScale").value;
+                const yScale = document.getElementById("yScale").value;
+                const { data } = await axios.get("http://localhost:4000/api/diabetes");
+                const selectedData = data.map((item) => ({
+                    x: item[xScale],
+                    y: item[yScale],
+                }));
+
+                if (glucoseBmiChart) glucoseBmiChart.destroy();
+                if (ageOutcomeChart) ageOutcomeChart.destroy();
+
+                glucoseBmiChart = new Chart(document.getElementById("glucoseBmiChart"), {
+                    type: "scatter",
+                    data: {
+                        datasets: [{
+                            label: `${xScale} vs ${yScale}`,
+                            data: selectedData,
+                            backgroundColor: "rgba(75, 192, 192, 0.5)",
+                            borderColor: "rgba(75, 192, 192, 1)",
+                            borderWidth: 1,
+                        }],
+                    },
+                    options: {
+                        scales: {
+                            x: { title: { display: true, text: xScale } },
+                            y: { title: { display: true, text: yScale } },
+                        },
+                        plugins: { legend: { display: true } },
+                    },
+                });
+
+                const ageGroups = [0, 30, 40, 50, 60, 100];
+                const outcomeByAge = ageGroups.slice(1).map((age, i) => {
+                    const countDiabetic = data.filter(
+                        (item) => item.Age >= ageGroups[i] && item.Age < age && item.Outcome === 1
+                    ).length;
+                    const countNonDiabetic = data.filter(
+                        (item) => item.Age >= ageGroups[i] && item.Age < age && item.Outcome === 0
+                    ).length;
+                    return {
+                        age: `${ageGroups[i]}-${age}`,
+                        diabetic: countDiabetic,
+                        nonDiabetic: countNonDiabetic,
+                    };
+                });
+
+                ageOutcomeChart = new Chart(document.getElementById("ageOutcomeChart"), {
+                    type: "bar",
+                    data: {
+                        labels: outcomeByAge.map((item) => item.age),
+                        datasets: [
+                            {
+                                label: "Diabetic",
+                                data: outcomeByAge.map((item) => item.diabetic),
+                                backgroundColor: "rgba(255, 99, 132, 0.5)",
+                                borderColor: "rgba(255, 99, 132, 1)",
+                                borderWidth: 1,
+                            },
+                            {
+                                label: "Non-Diabetic",
+                                data: outcomeByAge.map((item) => item.nonDiabetic),
+                                backgroundColor: "rgba(54, 162, 235, 0.5)",
+                                borderColor: "rgba(54, 162, 235, 1)",
+                                borderWidth: 1,
+                            },
+                        ],
+                    },
+                    options: {
+                        scales: {
+                            y: { beginAtZero: true, title: { display: true, text: "Count" } },
+                            x: { title: { display: true, text: "Age group" } },
+                        },
+                        plugins: { legend: { display: true } },
+                    },
+                });
+            } catch (error) {
+                console.error("Error rendering charts:", error);
+            }
+        }
+
+        Promise.all([loadData(), renderEDACharts()]).catch((error) => {
+            console.error("Error during initial load:", error);
+        });
+    </script>
+</body>
+
+</html>
