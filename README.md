@@ -4,12 +4,12 @@ Follow these steps to set up and run the project:
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/odilov-a/pbl-server.git
+    git clone https://github.com/odilov-a/diabetes-checker-project.git
     ```
 
 2. Navigate to the project directory:
     ```bash
-    cd pbl-server
+    cd diabetes-checker-project
     ```
 
 3. Install dependencies:
